@@ -17,5 +17,5 @@ export function useCity() {
     setCity(newCity)
   }
 
-  return { city, selectCity }
+  return { city, selectCity, setCity: selectCity }
 }

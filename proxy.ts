@@ -5,7 +5,7 @@ function isPublicPath(pathname: string): boolean {
   return pathname.startsWith('/login') || pathname.startsWith('/live')
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
