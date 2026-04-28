@@ -19,7 +19,7 @@ export default function OnboardingPage() {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
-    const { error } = await supabase.from('profiles').update({ name: name.trim(), city }).eq('id', user.id)
+    const { error } = await supabase.from('profiles').upsert({ id: user.id, name: name.trim(), city })
     if (error) { setError(error.message); setLoading(false); return }
     router.push('/community')
   }

@@ -1,10 +1,12 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 type Step = 'choose' | 'phone' | 'otp'
 
 export default function LoginPage() {
+  const router = useRouter()
   const [step, setStep] = useState<Step>('choose')
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
@@ -38,8 +40,7 @@ export default function LoginPage() {
     setError('')
     const formatted = phone.startsWith('+') ? phone : `+91${phone}`
     const { error } = await supabase.auth.verifyOtp({ phone: formatted, token: otp, type: 'sms' })
-    if (error) setError(error.message)
-    setLoading(false)
+    if (error) { setError(error.message); setLoading(false) } else { router.push('/auth/callback') }
   }
 
   return (

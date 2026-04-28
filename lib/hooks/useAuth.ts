@@ -12,12 +12,13 @@ export function useAuth() {
     const supabase = createClient()
 
     async function loadUser(userId: string) {
-      const { data } = await supabase
-        .from('users')
+      const { data, error } = await supabase
+        .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
-      setUser(data)
+      if (!error) setUser(data)
+      else setUser(null)
     }
 
     supabase.auth.getUser().then(({ data: { user: authUser } }) => {
@@ -35,6 +36,7 @@ export function useAuth() {
         } else {
           setUser(null)
         }
+        setLoading(false)
       }
     )
 
