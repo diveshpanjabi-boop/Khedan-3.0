@@ -40,35 +40,41 @@ export default function CommunityPage() {
 
   const fetchGameRequests = useCallback(async () => {
     if (!city) return
-    const supabase = createClient()
-    const { data } = await supabase
-      .from('game_requests')
-      .select('*, author:profiles(id, name, avatar_url)')
-      .eq('city', city)
-      .neq('status', 'cancelled')
-      .gte('datetime', new Date().toISOString())
-      .order('datetime')
-      .limit(30)
-    setGameRequests((data as GameRequest[]) || [])
-    setLoading(false)
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('game_requests')
+        .select('*, author:profiles(id, name, avatar_url)')
+        .eq('city', city)
+        .neq('status', 'cancelled')
+        .gte('datetime', new Date().toISOString())
+        .order('datetime')
+        .limit(30)
+      if (!error) setGameRequests((data as GameRequest[]) || [])
 
-    if (user) {
-      const { data: joins } = await supabase
-        .from('join_requests')
-        .select('game_request_id')
-        .eq('user_id', user.id)
-      setJoinedIds((joins || []).map((j: { game_request_id: string }) => j.game_request_id))
+      if (user) {
+        const { data: joins } = await supabase
+          .from('join_requests')
+          .select('game_request_id')
+          .eq('user_id', user.id)
+        setJoinedIds((joins || []).map((j: { game_request_id: string }) => j.game_request_id))
+      }
+    } finally {
+      setLoading(false)
     }
   }, [city, user])
 
   const fetchForumPosts = useCallback(async () => {
     if (!city) return
-    const res = await fetch(`/api/forum/posts?city=${encodeURIComponent(city)}&category=${forumCategory}`)
-    if (res.ok) {
-      const data = await res.json()
-      setForumPosts(data)
+    try {
+      const res = await fetch(`/api/forum/posts?city=${encodeURIComponent(city)}&category=${forumCategory}`)
+      if (res.ok) {
+        const data = await res.json()
+        setForumPosts(data)
+      }
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }, [city, forumCategory])
 
   useEffect(() => {
@@ -81,8 +87,8 @@ export default function CommunityPage() {
   useRealtime('forum_posts', city ?? '', fetchForumPosts)
 
   async function handleJoin(gameRequestId: string) {
-    await fetch(`/api/game-requests/${gameRequestId}/join`, { method: 'POST' })
-    setJoinedIds(prev => [...prev, gameRequestId])
+    const res = await fetch(`/api/game-requests/${gameRequestId}/join`, { method: 'POST' })
+    if (res.ok) setJoinedIds(prev => [...prev, gameRequestId])
   }
 
   async function handleLike(postId: string) {
@@ -92,7 +98,7 @@ export default function CommunityPage() {
       const { liked } = await res.json()
       setForumPosts(prev => prev.map(p =>
         p.id === postId
-          ? { ...p, likes: liked ? [...p.likes, user.id] : p.likes.filter(id => id !== user.id) }
+          ? { ...p, likes: liked ? [...(p.likes ?? []), user.id] : (p.likes ?? []).filter(id => id !== user.id) }
           : p
       ))
     }
