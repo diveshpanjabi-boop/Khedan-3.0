@@ -16,6 +16,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
+  const spotsNum = Number(total_spots)
+  if (!Number.isInteger(spotsNum) || spotsNum < 1 || spotsNum > 100) {
+    return NextResponse.json({ error: 'total_spots must be an integer between 1 and 100' }, { status: 400 })
+  }
+
+  const dt = new Date(datetime)
+  if (isNaN(dt.getTime()) || dt <= new Date()) {
+    return NextResponse.json({ error: 'datetime must be a valid future date' }, { status: 400 })
+  }
+
   const { data, error } = await supabase
     .from('game_requests')
     .insert({
@@ -24,7 +34,7 @@ export async function POST(request: Request) {
       venue_name,
       sport,
       datetime,
-      total_spots: Number(total_spots),
+      total_spots: spotsNum,
       description: description || null,
     })
     .select('*')

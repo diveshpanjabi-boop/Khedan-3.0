@@ -15,7 +15,7 @@ export async function POST(
 
   const { data: gameRequest } = await supabase
     .from('game_requests')
-    .select('status, author_id')
+    .select('status, author_id, filled_spots, total_spots')
     .eq('id', id)
     .single()
 
@@ -24,7 +24,11 @@ export async function POST(
   }
 
   if (gameRequest.status !== 'open') {
-    return NextResponse.json({ error: 'Game is full or cancelled' }, { status: 400 })
+    return NextResponse.json({ error: 'Game is no longer open for requests' }, { status: 400 })
+  }
+
+  if (gameRequest.filled_spots >= gameRequest.total_spots) {
+    return NextResponse.json({ error: 'Game is at capacity' }, { status: 400 })
   }
 
   if (gameRequest.author_id === user.id) {
