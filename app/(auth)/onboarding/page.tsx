@@ -2,13 +2,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-
-const CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Pune', 'Hyderabad', 'Kolkata', 'Ahmedabad']
+import { CityPicker } from '@/components/ui/CityPicker'
+import { useCity } from '@/lib/hooks/useCity'
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const { city } = useCity()
   const [name, setName] = useState('')
-  const [city, setCity] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -19,7 +19,7 @@ export default function OnboardingPage() {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
-    const { error } = await supabase.from('users').update({ name: name.trim(), city }).eq('id', user.id)
+    const { error } = await supabase.from('profiles').update({ name: name.trim(), city }).eq('id', user.id)
     if (error) { setError(error.message); setLoading(false); return }
     router.push('/community')
   }
@@ -39,11 +39,7 @@ export default function OnboardingPage() {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Your city</label>
-          <div className="grid grid-cols-2 gap-2">
-            {CITIES.map(c => (
-              <button key={c} type="button" onClick={() => setCity(c)} className={`py-2 rounded-xl text-sm font-medium border transition-colors ${city === c ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-600 border-gray-200 hover:border-green-400'}`}>{c}</button>
-            ))}
-          </div>
+          <CityPicker />
         </div>
         <button type="submit" disabled={loading || !name.trim() || !city} className="w-full bg-green-600 text-white rounded-xl py-3 font-medium hover:bg-green-700 transition-colors disabled:opacity-50">{loading ? 'Saving...' : 'Get Started'}</button>
       </form>
