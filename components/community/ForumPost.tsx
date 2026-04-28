@@ -46,9 +46,13 @@ export function ForumPost({ post, currentUserId, onLike, onOpen }: Props) {
         <span className="text-xs text-gray-400">{post.author?.name ?? 'Unknown'}</span>
         <div className="flex items-center gap-3">
           <button
-            onClick={e => { e.stopPropagation(); onLike(post.id) }}
+            onClick={e => {
+              e.stopPropagation()
+              if (currentUserId) onLike(post.id)
+            }}
+            disabled={!currentUserId}
             className={`flex items-center gap-1 text-xs font-medium transition-colors ${
-              liked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'
+              liked ? 'text-red-500' : currentUserId ? 'text-gray-400 hover:text-red-400' : 'text-gray-300 cursor-default'
             }`}
           >
             <Heart className={`w-4 h-4 ${liked ? 'fill-red-500' : ''}`} />
@@ -65,7 +69,9 @@ export function ForumPost({ post, currentUserId, onLike, onOpen }: Props) {
 }
 
 function formatTimeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
+  const date = new Date(iso)
+  if (isNaN(date.getTime())) return '—'
+  const diff = Math.max(0, Date.now() - date.getTime())
   const mins = Math.floor(diff / 60000)
   if (mins < 1) return 'just now'
   if (mins < 60) return `${mins}m ago`

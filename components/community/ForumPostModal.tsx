@@ -40,6 +40,7 @@ export function ForumPostModal({ onClose, onCreated }: Props) {
       return
     }
 
+    setLoading(false)
     onCreated()
     onClose()
   }
