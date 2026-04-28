@@ -3,7 +3,7 @@ import type { GameRequest } from '@/lib/types'
 
 interface Props {
   request: GameRequest
-  currentUserId: string
+  currentUserId: string | null
   joinedRequestIds?: string[]
   onJoin: (id: string) => void
   onManage: (id: string) => void
@@ -17,14 +17,16 @@ const SPORT_EMOJI: Record<string, string> = {
 }
 
 export function GameRequestCard({ request, currentUserId, joinedRequestIds = [], onJoin, onManage }: Props) {
-  const spotsLeft = request.total_spots - request.filled_spots
-  const isAuthor = request.author_id === currentUserId
-  const hasJoined = joinedRequestIds.includes(request.id)
+  const spotsLeft = Math.max(0, request.total_spots - request.filled_spots)
+  const isAuthor = Boolean(currentUserId) && request.author_id === currentUserId
+  const hasJoined = Boolean(currentUserId) && joinedRequestIds.includes(request.id)
   const isFull = request.status === 'full' || spotsLeft === 0
+  const isCancelled = request.status === 'cancelled'
 
   const datetime = new Date(request.datetime)
-  const dateStr = datetime.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
-  const timeStr = datetime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  const isValidDate = !isNaN(datetime.getTime())
+  const dateStr = isValidDate ? datetime.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }) : '—'
+  const timeStr = isValidDate ? datetime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
@@ -33,15 +35,20 @@ export function GameRequestCard({ request, currentUserId, joinedRequestIds = [],
           <span className="text-2xl">{SPORT_EMOJI[request.sport] ?? '🎮'}</span>
           <div>
             <span className="font-semibold text-gray-900">{request.sport}</span>
-            {isFull && (
+            {isCancelled && (
+              <span className="ml-2 text-xs font-medium bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Cancelled</span>
+            )}
+            {!isCancelled && isFull && (
               <span className="ml-2 text-xs font-medium bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Full</span>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1 text-sm text-gray-500">
-          <Users className="w-4 h-4" />
-          <span>{spotsLeft} spots left</span>
-        </div>
+        {!isCancelled && (
+          <div className="flex items-center gap-1 text-sm text-gray-500">
+            <Users className="w-4 h-4" />
+            <span>{spotsLeft} spots left</span>
+          </div>
+        )}
       </div>
 
       <div className="space-y-1 text-sm text-gray-600">
@@ -60,7 +67,11 @@ export function GameRequestCard({ request, currentUserId, joinedRequestIds = [],
       )}
 
       <div className="pt-1">
-        {isAuthor ? (
+        {isCancelled ? (
+          <button disabled className="w-full bg-gray-50 text-gray-400 rounded-xl py-2.5 text-sm font-medium cursor-default">
+            Cancelled
+          </button>
+        ) : isAuthor ? (
           <button
             onClick={() => onManage(request.id)}
             className="w-full bg-gray-100 text-gray-700 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-200 transition-colors"
