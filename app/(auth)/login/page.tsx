@@ -39,8 +39,12 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
     const formatted = phone.startsWith('+') ? phone : `+91${phone}`
-    const { error } = await supabase.auth.verifyOtp({ phone: formatted, token: otp, type: 'sms' })
-    if (error) { setError(error.message); setLoading(false) } else { router.push('/auth/callback') }
+    const { data, error } = await supabase.auth.verifyOtp({ phone: formatted, token: otp, type: 'sms' })
+    if (error) { setError(error.message); setLoading(false); return }
+    const userId = data.user?.id
+    if (!userId) { router.push('/onboarding'); return }
+    const { data: profile } = await supabase.from('profiles').select('city, name').eq('id', userId).single()
+    router.push(!profile?.city || !profile?.name ? '/onboarding' : '/community')
   }
 
   return (
