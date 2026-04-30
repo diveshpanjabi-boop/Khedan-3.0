@@ -1,7 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
 
@@ -9,17 +10,34 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/login?error=missing_code', request.url))
   }
 
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.exchangeCodeForSession(code)
+  // Create the response FIRST so setAll can attach cookies to it.
+  // Redirect to / which already handles the profile → onboarding/community check.
+  const response = NextResponse.redirect(new URL('/', request.url))
 
-  if (error || !user) {
-    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error?.message ?? 'auth_failed')}`, request.url))
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  const { error } = await supabase.auth.exchangeCodeForSession(code)
+
+  if (error) {
+    return NextResponse.redirect(
+      new URL(`/login?error=${encodeURIComponent(error.message)}`, request.url)
+    )
   }
 
-  const { data: profile } = await supabase.from('profiles').select('city, name').eq('id', user.id).single()
-  if (!profile?.city || !profile?.name) {
-    return NextResponse.redirect(new URL('/onboarding', request.url))
-  }
-
-  return NextResponse.redirect(new URL('/community', request.url))
+  return response
 }
